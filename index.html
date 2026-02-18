@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SDV - SniperDuelsValues</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #050507;
+      --bg-elevated: #0E0E12;
+      --card: #131318;
+      --border: #1F1F26;
+      --fg: #FFFFFF;
+      --muted: #6B6B76;
+      --accent: #00C8FF;
+      
+      /* Rarity Colors */
+      --secret: #222222;
+      --collectible: #00FFFF;
+      --epic: #FBBF24;
+      --legendary: #A78BFA;
+      --rare: #60A5FA;
+      --uncommon: #6B6B76;
+      --knife: #FF3333;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg);
+      color: var(--fg);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .nav-pill {
+      padding: 0.5rem 1rem;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--muted);
+      transition: all 0.2s ease;
+      cursor: pointer;
+      background: transparent;
+      border: 1px solid transparent;
+    }
+    .nav-pill:hover { color: var(--fg); background: rgba(255, 255, 255, 0.05); }
+    .nav-pill.active { color: var(--fg); background: var(--bg-elevated); border-color: var(--border); }
+
+    .filter-chip {
+      padding: 0.375rem 0.875rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--muted);
+      background: transparent;
+      border: 1px solid var(--border);
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .filter-chip:hover { border-color: var(--muted); color: var(--fg); }
+    .filter-chip.active { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+    .item-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      position: relative;
+    }
+    .item-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Hover Borders */
+    .item-card[data-rarity="secret"]:hover { border-color: #444; }
+    .item-card[data-rarity="collectible"]:hover { border-color: var(--collectible); }
+    .item-card[data-rarity="epic"]:hover { border-color: var(--epic); }
+    .item-card[data-rarity="legendary"]:hover { border-color: var(--legendary); }
+    .item-card[data-rarity="rare"]:hover { border-color: var(--rare); }
+    .item-card[data-rarity="knife"]:hover { border-color: var(--knife); }
+
+    .item-image-container {
+      background: linear-gradient(135deg, #1a1a22 0%, #0a0a0f 100%);
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      padding: 16px;
+    }
+    
+    .item-image-container::after {
+        content: '';
+        position: absolute;
+        bottom: 0; left: 0; right: 0;
+        height: 40%;
+        background: linear-gradient(to top, var(--card), transparent);
+        pointer-events: none;
+    }
+
+    .search-box {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.875rem 1rem 0.875rem 2.75rem;
+      width: 100%;
+      color: var(--fg);
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    .search-box:focus { outline: none; border-color: var(--accent); background: var(--card); }
+    .search-box::placeholder { color: var(--muted); }
+
+    .sort-select {
+        appearance: none;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 0.875rem 2.5rem 0.875rem 1rem;
+        color: var(--fg);
+        font-size: 0.9rem;
+        font-family: inherit;
+        cursor: pointer;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B6B76'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 1rem;
+        transition: all 0.2s;
+    }
+    .sort-select:focus { outline: none; border-color: var(--accent); }
+
+    .modal-backdrop { background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(8px); }
+    .modal-panel { background: var(--card); border: 1px solid var(--border); border-radius: 20px; max-width: 400px; width: 100%; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.4s ease forwards; }
+
+    /* Rarity Gradient Text Animations */
+    @keyframes gradient-shift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .rarity-text {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: gradient-shift 3s ease infinite;
+    }
+
+    .text-secret { background-image: linear-gradient(to right, #1a1a1a, #333, #1a1a1a, #444, #1a1a1a); }
+    .text-collectible { background-image: linear-gradient(to right, #00C8FF, #00FFFF, #00C8FF, #7DFDFF, #00C8FF); }
+    .text-epic { background-image: linear-gradient(to right, #FFD700, #FFA500, #FFD700, #FFCC00, #FFD700); }
+    .text-legendary { background-image: linear-gradient(to right, #A78BFA, #8B5CF6, #A78BFA, #C4B5FD, #A78BFA); }
+    .text-rare { background-image: linear-gradient(to right, #60A5FA, #3B82F6, #60A5FA, #93C5FD, #60A5FA); }
+    .text-uncommon { background-image: linear-gradient(to right, #6B7280, #9CA3AF, #6B7280, #D1D5DB, #6B7280); }
+    .text-knife { background-image: linear-gradient(to right, #FF3333, #FF0000, #FF3333, #CC0000, #FF3333); }
+
+    /* Wear Badges */
+    .wear-badge {
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 4px;
+        text-transform: uppercase;
+    }
+    .wear-ww { background: rgba(107, 114, 128, 0.2); color: #9CA3AF; border: 1px solid rgba(107, 114, 128, 0.3); }
+    .wear-si { background: rgba(0, 200, 255, 0.1); color: #00C8FF; border: 1px solid rgba(0, 200, 255, 0.2); }
+    .wear-mc { background: rgba(251, 191, 36, 0.1); color: #FFD700; border: 1px solid rgba(251, 191, 36, 0.2); }
+
+</style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur-lg">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <img src="favicon.ico" class="w-8 h-8 rounded-lg object-contain" alt="SDV Logo">
+        <span class="font-bold text-lg tracking-tight">Sniper Duels Values</span>
+      </div>
+
+      <nav class="hidden sm:flex items-center gap-1 bg-[var(--bg-elevated)] p-1 rounded-full border border-[var(--border)]">
+        <button class="nav-pill active" id="nav-snipers">Snipers</button>
+        <button class="nav-pill" id="nav-knives">Knives</button>
+      </nav>
+
+      <button id="mobileMenuBtn" class="sm:hidden p-2 rounded-lg hover:bg-[var(--bg-elevated)] transition">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h12M4 10h12M4 14h12"/></svg>
+      </button>
+    </div>
+    
+    <div id="mobileNav" class="hidden sm:hidden border-t border-[var(--border)] p-2 flex-wrap flex gap-1 bg-[var(--bg-elevated)]">
+        <button class="nav-pill active text-xs flex-1" id="mobile-nav-snipers">Snipers</button>
+        <button class="nav-pill text-xs flex-1" id="mobile-nav-knives">Knives</button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-8">
+    
+    <!-- Top Controls -->
+    <div class="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between mb-8">
+        <div class="flex gap-3 w-full md:w-auto">
+            <div class="relative flex-1 md:w-80">
+                <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted)]" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="6"/><path d="m14 14 3 3"/></svg>
+                <input type="text" id="searchInput" class="search-box" placeholder="Search items...">
+            </div>
+
+            <select id="sortSelect" class="sort-select">
+                <option value="rarity-desc">Rarity: High to Low</option>
+                <option value="rarity-asc">Rarity: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+                <option value="price-asc">Price: Low to High</option>
+            </select>
+        </div>
+
+        <!-- Filters -->
+        <div id="filtersContainer" class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar flex-wrap">
+            <button class="filter-chip active" data-filter="all">All</button>
+            <button class="filter-chip" data-filter="collectible">Collectible</button>
+            <button class="filter-chip" data-filter="secret">Secret</button>
+            <button class="filter-chip" data-filter="epic">Epic</button>
+            <button class="filter-chip" data-filter="legendary">Legendary</button>
+            <button class="filter-chip" data-filter="rare">Rare</button>
+            <button class="filter-chip" data-filter="uncommon">Uncommon</button>
+        </div>
+    </div>
+
+    <!-- Items Grid -->
+    <div id="itemsGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5"></div>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="hidden text-center py-20">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[var(--bg-elevated)] border border-[var(--border)] mb-4">
+        <svg width="24" height="24" class="text-[var(--muted)]" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+      </div>
+      <p class="text-[var(--fg)] font-medium">No items found</p>
+      <p class="text-[var(--muted)] text-sm mt-1">Try a different search or filter</p>
+    </div>
+  </main>
+
+  <!-- Modal -->
+  <div id="itemModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="absolute inset-0 modal-backdrop" id="modalOverlay"></div>
+    <div class="modal-panel relative z-10 p-6 transform scale-95 opacity-0 transition-all duration-200" id="modalContent">
+        <button id="closeModal" class="absolute top-4 right-4 text-[var(--muted)] hover:text-white transition">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l12 12M16 4 4 16"/></svg>
+        </button>
+        <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="border-t border-[var(--border)] mt-auto">
+    <div class="max-w-6xl mx-auto px-4 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[var(--muted)]">
+        <div class="flex items-center gap-2">
+            <span class="font-semibold text-[var(--fg)]">SDV</span>
+            <span>Community Values</span>
+        </div>
+        <div>Updated Today</div>
+    </div>
+  </footer>
+
+  <script>
+    // --- DATA ---
+    const sniperItems = [
+      // -- COLLECTIBLE --
+      { name: "Retroslop (Blue)", cat: "Classic", case: "N/A Case", val: 40500, rarity: "collectible", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444721665-Retroslop__Blue_-watermarked.webp" },
+      { name: "Retroslop (Yellow)", cat: "Classic", case: "N/A Case", val: 48000, rarity: "collectible", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444722770-Retroslop__Yellow_-watermarked.webp" },
+      { name: "Retroslop (Red)", cat: "Classic", case: "N/A Case", val: 37000, rarity: "collectible", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444723401-Retroslop__Red_-watermarked.webp" },
+      { name: "Retroslop (Green)", cat: "Classic", case: "N/A Case", val: 45000, rarity: "collectible", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444722217-Retroslop__Green_-watermarked.webp" },
+      { name: "Retroslop (Gray)", cat: "Classic", case: "N/A Case", val: 38000, rarity: "collectible", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444758606-Retroslop__Gray_-watermarked.webp" },
+      { name: "Retroslop (Pink)", cat: "Classic", case: "N/A Case", val: 35000, rarity: "collectible", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444759209-Retroslop__Pink_-watermarked.webp" },
+      { name: "Frankenawp (Green)", cat: "AWP", case: "N/A Case", val: 1300, rarity: "collectible", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444752052-Frankenawp__Green_-watermarked.webp" },
+      { name: "Frankenawp (Gray)", cat: "AWP", case: "N/A Case", val: 1300, rarity: "collectible", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444754463-Frankenawp__Gray_-watermarked.webp" },
+      { name: "Rainbow Runner", cat: "AWP", case: "N/A Case", val: 0, rarity: "collectible", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444744237-Rainbow_Runner-watermarked.webp" },
+      { name: "Peppermint (AWP)", cat: "AWP", case: "Present Case", val: 450, rarity: "collectible", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444765806-Peppermint-watermarked.webp" },
+      { name: "Peppermint (Intervention)", cat: "Intervention", case: "N/A Case", val: 450, rarity: "collectible", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444772413-Peppermint_-watermarked.webp" },
+      { name: "New Years 2026 (Intervention)", cat: "Intervention", case: "N/A Case", val: 900, rarity: "collectible", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444778683-New_Years_2026-watermarked.webp" },
+      { name: "New Years 2026 (AWP)", cat: "AWP", case: "N/A Case", val: 900, rarity: "collectible", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444779386-New_Years_2026-watermarked.webp" },
+      { name: "Hallows Punisher (Orange)", cat: "Intervention", case: "N/A Case", val: 1200, rarity: "collectible", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444752941-Hallows_Punisher__Orange_-watermarked.webp" },
+      { name: "Hallows Punisher (Purple)", cat: "Intervention", case: "N/A Case", val: 1200, rarity: "collectible", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444753595-Hallows_Punisher__Purple_-watermarked.webp" },
+      { name: "Vaporwave", cat: "Intervention", case: "N/A Case", val: 300, rarity: "collectible", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444781827-Vaporwave_-watermarked.webp" },
+      { name: "Vaporwave (Green)", cat: "Intervention", case: "N/A Case", val: 300, rarity: "collectible", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444782875-Vaporwave__Green_-watermarked.webp" },
+      { name: "Tiger Stripe", cat: "Deagle", case: "N/A Case", val: 650, rarity: "collectible", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444783801-Tiger_Stripe_-watermarked.webp" },
+      { name: "For Him", cat: "AWP", case: "N/A Case", val: 0, rarity: "collectible", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1770535011122-ForHim.webp" },
+      { name: "For Her", cat: "AWP", case: "N/A Case", val: 0, rarity: "collectible", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1770535075069-ForHer_Render.webp" },
+      // Moved to Collectible as requested
+      { name: "Wood", cat: "Default", case: "Default", val: 140000, rarity: "collectible", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444743522-Wood-watermarked.webp" },
+      { name: "Ascii White", cat: "Executioner", case: "N/A Case", val: 300, rarity: "collectible", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444755313-Ascii_White-watermarked.webp" },
+      { name: "Frostbite", cat: "Executioner", case: "N/A Case", val: 400, rarity: "collectible", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444756155-Frostbite-watermarked.webp" },
+
+      // -- SECRET --
+      { name: "True Inverted (AWP)", cat: "AWP", case: "Release Case", val: 350000, rarity: "secret", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444704566-True_Inverted-watermarked.webp" },
+      { name: "True Inverted (Default)", cat: "Default", case: "Release Case", val: 310000, rarity: "secret", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444703885-True_Inverted-watermarked.webp" },
+      { name: "True Inverted (Deagle)", cat: "Deagle", case: "Skin Case 1", val: 300000, rarity: "secret", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444742414-True_Inverted-watermarked.webp" },
+      { name: "True Inverted (Intervention)", cat: "Intervention", case: "Skin Case 1", val: 270000, rarity: "secret", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444742975-True_Inverted_-watermarked.webp" },
+      { name: "Umbr Elementalist", cat: "AWP", case: "Hallows Basket", val: 240000, rarity: "secret", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444705504-Umbr_Elementalist-watermarked.webp" },
+      { name: "Elementalist", cat: "AWP", case: "Hallows Basket", val: 222000, rarity: "secret", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444751252-Elementalist-watermarked.webp" },
+      { name: "True Pink (AWP)", cat: "AWP", case: "V-Day", val: 195000, rarity: "secret", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1770534589252-True_Love_Awp.webp" },
+      { name: "True Pink (Default)", cat: "Default", case: "V-Day", val: 190000, rarity: "secret", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1770534655238-True_love_Default.webp" },
+      { name: "True Pink (Intervention)", cat: "Intervention", case: "V-Day", val: 185000, rarity: "secret", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1770535107044-True_Love_Intervention.webp" },
+      { name: "North Star", cat: "Intervention", case: "Present", val: 90000, rarity: "secret", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444769421-North_Star-watermarked.webp" },
+      { name: "Loves Crest", cat: "Executioner", case: "V-Day", val: 90000, rarity: "secret", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1770534907208-loves_crest_icon.webp" },
+      { name: "Lonely Star", cat: "Intervention", case: "Christmas Present", val: 85000, rarity: "secret", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444790907-Lonely_Star-watermarked.webp" },
+      { name: "Inverted (AWP)", cat: "AWP", case: "Release Case", val: 80000, rarity: "secret", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444701375-Inverted-watermarked.webp" },
+      { name: "True White", cat: "Default", case: "Release Case", val: 70000, rarity: "secret", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444702596-True_White-watermarked.webp" },
+      { name: "True Black", cat: "Default", case: "Release Case", val: 65000, rarity: "secret", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444703170-True_Black-watermarked.webp" },
+      { name: "Inverted (Default)", cat: "Default", case: "Release Case", val: 60000, rarity: "secret", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444701990-Inverted-watermarked.webp" },
+      { name: "Inverted (Deagle)", cat: "Deagle", case: "Skin Case 1", val: 50000, rarity: "secret", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444741250-Inverted_-watermarked.webp" },
+      { name: "Inverted (Intervention)", cat: "Intervention", case: "Skin Case 1", val: 45000, rarity: "secret", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444741889-Inverted_-watermarked.webp" },
+      { name: "Angelic", cat: "Intervention", case: "Skin Case 1", val: 35000, rarity: "secret", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444739072-Angelic-watermarked.webp" },
+      { name: "Case Hardened", cat: "Deagle", case: "Skin Case 1", val: 30000, rarity: "secret", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444740064-Case_Hardened_-watermarked.webp" },
+
+      // -- EPIC --
+      { name: "Red Spiral", cat: "AWP", case: "Hallows Basket", val: 750, rarity: "epic", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444693588-Red_Spiral-watermarked.webp" },
+      { name: "Sunset Runner", cat: "AWP", case: "Release Case", val: 400, rarity: "epic", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444700730-Sunset_Runner-watermarked.webp" },
+      { name: "Apex", cat: "Intervention", case: "Release Case", val: 350, rarity: "epic", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444695622-Apex-watermarked.webp" },
+      { name: "Black Knight", cat: "Intervention", case: "Hallows Basket", val: 350, rarity: "epic", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444712677-Black_Knight-watermarked.webp" },
+      { name: "Arctic Recon", cat: "AWP", case: "Present", val: 250, rarity: "epic", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444762930-Arctic_Recon_-watermarked.webp" },
+      { name: "Snowflake", cat: "Deagle", case: "Present", val: 250, rarity: "epic", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444771379-Snowflake-watermarked.webp" },
+      { name: "Gingerbread", cat: "Intervention", case: "Christmas Present", val: 200, rarity: "epic", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444776737-Gingerbread-watermarked.webp" },
+      { name: "Royal", cat: "Shotgun", case: "V-Day", val: 200, rarity: "epic", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1770534843653-Royal.webp" },
+      { name: "Shogun", cat: "AWP", case: "Skin Case 1", val: 150, rarity: "epic", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444725600-Shogun-watermarked.webp" },
+      { name: "Blossom", cat: "Intervention", case: "Skin Case 1", val: 150, rarity: "epic", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444726547-Blossom-watermarked.webp" },
+      { name: "Cupid", cat: "Deagle", case: "V-Day", val: 150, rarity: "epic", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1770534876593-Cupid.webp" },
+      { name: "Jewel", cat: "AWP", case: "V-Day", val: 150, rarity: "epic", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1770535043444-Jewel.webp" },
+      { name: "Dynasty", cat: "AWP", case: "Skin Case 1", val: 150, rarity: "epic", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444724705-Dynasty-watermarked.webp" },
+
+      // -- LEGENDARY --
+      { name: "Bewitched", cat: "AWP", case: "Hallows Basket", val: 125, rarity: "legendary", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444709170-Bewitched-watermarked.webp" },
+      { name: "Bubble Gum", cat: "AWP", case: "Release Case", val: 75, rarity: "legendary", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444699334-Bubble_Gum-watermarked.webp" },
+      { name: "Reaper", cat: "Intervention", case: "Hallows Basket", val: 75, rarity: "legendary", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444706535-Reaper-watermarked.webp" },
+      { name: "Drifter", cat: "AWP", case: "Skin Case 1", val: 75, rarity: "legendary", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444723968-Drifter-watermarked.webp" },
+      { name: "White Spiral", cat: "AWP", case: "Hallows Basket", val: 75, rarity: "legendary", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444750317-White_Spiral-watermarked.webp" },
+      { name: "Heartbreak", cat: "Intervention", case: "V-Day", val: 75, rarity: "legendary", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1770535143698-Heartbreak.webp" },
+      { name: "Borealis", cat: "AWP", case: "Present", val: 65, rarity: "legendary", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444763855-Borealis_-watermarked.webp" },
+      { name: "Evergreen Winter", cat: "Intervention", case: "Christmas Present", val: 65, rarity: "legendary", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444777502-Evergreen_Winter-watermarked.webp" },
+      { name: "Vanilla (AWP)", cat: "AWP", case: "Release Case", val: 50, rarity: "legendary", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444698626-Vanilla-watermarked.webp" },
+      { name: "Vanilla (Intervention)", cat: "Intervention", case: "Release Case", val: 50, rarity: "legendary", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444699949-Vanilla-watermarked.webp" },
+      { name: "Vanilla (Deagle)", cat: "Deagle", case: "Skin Case 1", val: 50, rarity: "legendary", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444713377-Vanilla-watermarked.webp" },
+      { name: "Fantasy", cat: "AWP", case: "V-Day", val: 50, rarity: "legendary", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1770535364742-Fantasy.webp" },
+
+      // -- RARE --
+      { name: "Lightning", cat: "Default", case: "Release Case", val: 20, rarity: "rare", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444697435-Lightning-watermarked.webp" },
+      { name: "Crime Scene", cat: "Default", case: "Release Case", val: 20, rarity: "rare", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444698049-Crime_Scene-watermarked.webp" },
+      { name: "Tidal", cat: "Default", case: "Skin Case 1", val: 20, rarity: "rare", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444710052-Tidal-watermarked.webp" },
+      { name: "Dance Dance", cat: "Default", case: "Skin Case 1", val: 20, rarity: "rare", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444711306-Dance_Dance-watermarked.webp" },
+      { name: "Crimson Catseye", cat: "Default", case: "Hallows Basket", val: 50, rarity: "rare", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444747474-Crimson_Catseye-watermarked.webp" },
+      { name: "Vampire Hunter", cat: "Default", case: "Hallows Basket", val: 50, rarity: "rare", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444748675-Vampire_Hunter-watermarked.webp" },
+      { name: "Cauldron", cat: "Default", case: "Hallows Basket", val: 50, rarity: "rare", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444749478-Cauldron-watermarked.webp" },
+      { name: "Fleur De Noel", cat: "Default", case: "Present", val: 50, rarity: "rare", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444764846-Fleur_De_Noel_-watermarked.webp" },
+      { name: "Naughty Present", cat: "Default", case: "Present", val: 50, rarity: "rare", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444767604-Naughty_Present_-watermarked.webp" },
+      { name: "Rose", cat: "Default", case: "V-Day", val: 20, rarity: "rare", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1770535250985-Rose.webp" },
+      { name: "Fleur De Amour", cat: "Default", case: "V-Day", val: 20, rarity: "rare", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1770535421396-Fleur_De_Amour.webp" },
+      { name: "Velvet", cat: "Default", case: "V-Day", val: 20, rarity: "rare", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1770535457284-Velvet.webp" },
+
+      // -- UNCOMMON --
+      { name: "Green Stream", cat: "Default", case: "Release Case", val: 10, rarity: "uncommon", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444694477-Green_Stream-watermarked.webp" },
+      { name: "Flames", cat: "Default", case: "Release Case", val: 10, rarity: "uncommon", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444695037-Flames-watermarked.webp" },
+      { name: "Snake Skin", cat: "Default", case: "Release Case", val: 10, rarity: "uncommon", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444696679-Snake_Skin-watermarked.webp" },
+      { name: "Tribal", cat: "Default", case: "Skin Case 1", val: 10, rarity: "uncommon", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444707525-Tribal-watermarked.webp" },
+      { name: "Industrial", cat: "Default", case: "Skin Case 1", val: 10, rarity: "uncommon", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444708368-Industrial-watermarked.webp" },
+      { name: "Mummy", cat: "Default", case: "Hallows Basket", val: 30, rarity: "uncommon", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444745629-Mummy-watermarked.webp" },
+      { name: "Stalker", cat: "Default", case: "Hallows Basket", val: 30, rarity: "uncommon", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444746667-Stalker-watermarked.webp" },
+      { name: "Zombie", cat: "Default", case: "Hallows Basket", val: 30, rarity: "uncommon", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444760532-Zombie-watermarked.webp" },
+      { name: "Glacial", cat: "Default", case: "Present", val: 20, rarity: "uncommon", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444766693-Glacial-watermarked.webp" },
+      { name: "Nice Present", cat: "Default", case: "Present", val: 20, rarity: "uncommon", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444768432-Nice_Present_-watermarked.webp" },
+      { name: "Peppermint (Default)", cat: "Default", case: "Present", val: 20, rarity: "uncommon", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444770420-Peppermint_-watermarked.webp" },
+      { name: "Reindeer", cat: "Default", case: "Present", val: 20, rarity: "uncommon", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444775853-Reindeer-watermarked.webp" },
+      { name: "Pink Camo", cat: "Default", case: "V-Day", val: 10, rarity: "uncommon", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1770535391743-Pink_Camo.webp" },
+      { name: "Hearts", cat: "Default", case: "V-Day", val: 10, rarity: "uncommon", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1770535567534-Hearts.webp" },
+      { name: "Cherry Wood", cat: "Default", case: "V-Day", val: 10, rarity: "uncommon", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1770535671534-Cherry_Wood.webp" }
+    ];
+
+    // --- KNIVES DATA (Removed Prototype, Rarity=Knife) ---
+    const knifeItems = [
+      { name: "Bayonet Amethyst", cat: "Bayonet", case: "Release Case", val: 9500, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444756869-Amethyst_-watermarked.webp", rawVal: "9.5K" },
+      { name: "Bayonet Aurora", cat: "Bayonet", case: "Release Case", val: 9500, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444714488-Aurora-watermarked.webp", rawVal: "9.5K" },
+      { name: "Karambit Aurora", cat: "Karambit", case: "Skin Case 1", val: 22000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444731079-Aurora-watermarked.webp", rawVal: "22K" },
+      { name: "Katana Blacksteel", cat: "Katana", case: "Skin Case 1", val: 20000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444734469-Blacksteel-watermarked.webp", rawVal: "20K" },
+      { name: "Candy Cane Blueberry", cat: "Candy Cane", case: "Christmas Present", val: 140000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444794389-Blueberry-watermarked.webp", rawVal: "140K" },
+      { name: "Bayonet Bluesteel", cat: "Bayonet", case: "Release Case", val: 900, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444715095-Bluesteel-watermarked.webp", rawVal: "900" },
+      { name: "Survivor Bluesteel", cat: "Survivor", case: "Skin Case 1", val: 1300, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444737938-Bluesteel-watermarked.webp", rawVal: "1.3K" },
+      { name: "Bayonet Candy Corn", cat: "Bayonet", case: "Hallows Basket", val: 6500, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444715857-Candy_Corn-watermarked.webp", rawVal: "6.5K" },
+      { name: "Karambit Case Hardened", cat: "Karambit", case: "Skin Case 1", val: 100000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444778118-Case_Hardened_-watermarked.webp", rawVal: "100K" },
+      { name: "Butterfly Cherry", cat: "Butterfly", case: "Skin Case 1", val: 14000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444728134-Cherry-watermarked.webp", rawVal: "14K" },
+      { name: "Katana Cherry", cat: "Katana", case: "Skin Case 1", val: 16000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444744807-Cherry-watermarked.webp", rawVal: "16K" },
+      { name: "Katana Cookie", cat: "Katana", case: "Christmas Present", val: 25000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444785880-Cookie-watermarked.webp", rawVal: "25K" },
+      { name: "Bayonet Cookie", cat: "Bayonet", case: "Christmas Present", val: 10000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444786613-Cookie-watermarked.webp", rawVal: "10K" },
+      { name: "Karambit Cookie", cat: "Karambit", case: "Christmas Present", val: 15000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444788280-Cookie-watermarked.webp", rawVal: "15K" },
+      { name: "Butterfly Cookie", cat: "Butterfly", case: "Christmas Present", val: 17000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444781277-Cookie-watermarked.webp", rawVal: "17K" },
+      { name: "Survivor Cookie", cat: "Survivor", case: "Christmas Present", val: 6000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444792010-Cookie_-watermarked.webp", rawVal: "6K" },
+      { name: "Bayonet Cultist", cat: "Bayonet", case: "Hallows Basket", val: 16000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444716415-Cultist-watermarked.webp", rawVal: "16K" },
+      { name: "Bayonet Cupid", cat: "Bayonet", case: "V-Day", val: 5500, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1770535533249-Cupid_Bayonet.webp", rawVal: "5.5K" },
+      { name: "Butterfly Damascus", cat: "Butterfly", case: "Skin Case 1", val: 18000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444728837-Damascus-watermarked.webp", rawVal: "18K" },
+      { name: "Butterfly Darksteel", cat: "Butterfly", case: "Skin Case 1", val: 18000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444729409-Darksteel-watermarked.webp", rawVal: "18K" },
+      { name: "Bayonet Emerald", cat: "Bayonet", case: "Release Case", val: 13000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444717049-Emerald-watermarked.webp", rawVal: "13K" },
+      { name: "Butterfly Frostbite", cat: "Butterfly", case: "Skin Case 1", val: 12000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444729994-Frostbite-watermarked.webp", rawVal: "12K" },
+      { name: "Katana Frostborn", cat: "Katana", case: "Christmas Present", val: 70000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444789058-Frostborn-watermarked.webp", rawVal: "70K" },
+      { name: "Survivor Heartbreak", cat: "Survivor", case: "V-Day", val: 1800, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1770535338864-Heartbreak_Survivor.webp", rawVal: "1.8K" },
+      { name: "Bayonet Hypno", cat: "Bayonet", case: "Release Case", val: 5500, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444717695-Hypno-watermarked.webp", rawVal: "5.5K" },
+      { name: "Bombline Kitchen", cat: "Bombline", case: "N/A", val: 105000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444758044-Kitchen-watermarked.webp", rawVal: "105K" },
+      { name: "Karambit Koi", cat: "Karambit", case: "Skin Case 1", val: 10000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444731666-Koi-watermarked.webp", rawVal: "10K" },
+      { name: "Katana Nebuleum", cat: "Katana", case: "Christmas Present", val: 80000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444789973-Nebuleum_-watermarked.webp", rawVal: "80K" },
+      { name: "Karambit Nebuleum", cat: "Karambit", case: "Christmas Present", val: 20000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444792863-Nebuleum_-watermarked.webp", rawVal: "20K" },
+      { name: "Bayonet Onyx", cat: "Bayonet", case: "Release Case", val: 40000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444762120-Onyx-watermarked.webp", rawVal: "40K" },
+      { name: "Butterfly Peppermint", cat: "Butterfly", case: "Christmas Present", val: 6000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444787405-Peppermint-watermarked.webp", rawVal: "6K" },
+      { name: "Karambit Peppermint", cat: "Karambit", case: "Present", val: 4500, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444773508-Peppermint-watermarked.webp", rawVal: "4.5K" },
+      { name: "Candy Cane Peppermint", cat: "Candy Cane", case: "Christmas Present", val: 110000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444795583-Peppermint-watermarked.webp", rawVal: "110K" },
+      { name: "Katana Peppermint", cat: "Katana", case: "Christmas Present", val: 25000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444780001-Peppermint-watermarked.webp", rawVal: "25K" },
+      { name: "Survivor Peppermint", cat: "Survivor", case: "Present", val: 2000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444774651-Peppermint_-watermarked.webp", rawVal: "2K" },
+      { name: "Bayonet Peppermint", cat: "Bayonet", case: "Christmas Present", val: 3500, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444780613-Peppermint_-watermarked.webp", rawVal: "3.5K" },
+      { name: "Bombline Pixel", cat: "Bombline", case: "N/A", val: 78000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444757493-Pixel-watermarked.webp", rawVal: "78K" },
+      { name: "Karambit Rose Fade", cat: "Karambit", case: "V-Day", val: 4000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1770534962535-Karambit_icon_template.webp", rawVal: "4K" },
+      { name: "Bayonet Rose Gold", cat: "Bayonet", case: "V-Day", val: 1000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1770535644122-Rose_Gold.webp", rawVal: "1K" },
+      { name: "Bayonet Ruby", cat: "Bayonet", case: "Release Case", val: 14000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444718435-Ruby-watermarked.webp", rawVal: "14K" },
+      { name: "Karambit Sakura", cat: "Karambit", case: "Skin Case 1", val: 11000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444732221-Sakura-watermarked.webp", rawVal: "11K" },
+      { name: "Bayonet Sapphire", cat: "Bayonet", case: "Release Case", val: 14000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444719167-Sapphire-watermarked.webp", rawVal: "14K" },
+      { name: "Katana Shogun", cat: "Katana", case: "Skin Case 1", val: 22000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444735022-Shogun-watermarked.webp", rawVal: "22K" },
+      { name: "Bayonet Sunset", cat: "Bayonet", case: "Release Case", val: 9000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444719862-Sunset-watermarked.webp", rawVal: "9K" },
+      { name: "Karambit Sunset", cat: "Karambit", case: "Skin Case 1", val: 19000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444732814-Sunset-watermarked.webp", rawVal: "19K" },
+      { name: "Katana True Black", cat: "Katana", case: "Skin Case 1", val: 100000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444735666-True_Black-watermarked.webp", rawVal: "100K" },
+      { name: "Katana True White", cat: "Katana", case: "Skin Case 1", val: 105000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444736226-True_White-watermarked.webp", rawVal: "105K" },
+      { name: "Candy Cane Tutti Frutti", cat: "Candy Cane", case: "Christmas Present", val: 170000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444793660-Tutti_Frutti-watermarked.webp", rawVal: "170K" },
+      { name: "Bayonet Vampiric", cat: "Bayonet", case: "Hallows Basket", val: 21000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444720477-Vampiric-watermarked.webp", rawVal: "21K" },
+      { name: "Bayonet Vanilla", cat: "Bayonet", case: "Release Case", val: 5500, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444721106-Vanilla-watermarked.webp", rawVal: "5.5K" },
+      { name: "Butterfly Vanilla", cat: "Butterfly", case: "Skin Case 1", val: 4000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444727264-Vanilla-watermarked.webp", rawVal: "4K" },
+      { name: "Karambit Vanilla", cat: "Karambit", case: "Skin Case 1", val: 3000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444733387-Vanilla-watermarked.webp", rawVal: "3K" },
+      { name: "Katana Vanilla", cat: "Katana", case: "Skin Case 1", val: 20000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444736782-Vanilla-watermarked.webp", rawVal: "20K" },
+      { name: "Survivor Vanilla", cat: "Survivor", case: "Skin Case 1", val: 2000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444737318-Vanilla-watermarked.webp", rawVal: "2K" },
+      { name: "Butterfly Velvet", cat: "Butterfly", case: "V-Day", val: 7000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1770535304239-velvet_butterfly.webp", rawVal: "7K" },
+      { name: "Butterfly Venom", cat: "Butterfly", case: "Skin Case 1", val: 10000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444730552-Venom_-watermarked.webp", rawVal: "10K" },
+      { name: "Karambit Viper", cat: "Karambit", case: "Skin Case 1", val: 12000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444733966-Viper-watermarked.webp", rawVal: "12K" },
+      { name: "Candy Cane Wintergreen", cat: "Candy Cane", case: "Christmas Present", val: 125000, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444795001-Wintergreen-watermarked.webp", rawVal: "125K" },
+      { name: "Bayonet Zombie Slayer", cat: "Bayonet", case: "Hallows Basket", val: 7500, rarity: "knife", img: "https://86lj1uo3hexqvafx.public.blob.vercel-storage.com/weapons/1768444713902-Zombie_Slayer-watermarked.webp", rawVal: "7.5K" }
+    ];
+
+    // Map IDs
+    const snipers = sniperItems.map((item, index) => { return { id: index + 1, ...item }; });
+    const knives = knifeItems.map((item, index) => { return { id: index + 1, ...item }; });
+
+    // State
+    let activeCategory = 'snipers';
+    let activeFilter = 'all';
+    let searchQuery = '';
+    let currentSort = 'rarity-desc';
+
+    // Helpers
+    const rarityOrder = { 
+      collectible: 6, 
+      secret: 5, 
+      epic: 4, 
+      legendary: 3, 
+      knife: 2.8,
+      rare: 2, 
+      uncommon: 1
+    };
+
+    // Wear Logic
+    const getWearPrices = (item) => {
+      if (item.val === 0 || item.val === "N/A") return [{ label: 'MC', val: 0, class: 'mc' }];
+
+      // Collectible and Secret are MC only
+      if (item.rarity === 'collectible' || item.rarity === 'secret') {
+        return [{ label: 'MC', val: Math.round(item.val * 1.5), class: 'mc' }];
+      }
+
+      // Others have all wears
+      const base = item.val;
+      return [
+        { label: 'WW', val: Math.round(base / 1.5), class: 'ww' },
+        { label: 'SI', val: base, class: 'si' },
+        { label: 'MC', val: Math.round(base * 1.5), class: 'mc' }
+      ];
+    };
+    
+    // DOM
+    const grid = document.getElementById('itemsGrid');
+    const searchInput = document.getElementById('searchInput');
+    const sortSelect = document.getElementById('sortSelect');
+    const filterBtns = document.querySelectorAll('.filter-chip');
+    const filtersContainer = document.getElementById('filtersContainer');
+    const modal = document.getElementById('itemModal');
+    const modalBody = document.getElementById('modalBody');
+    const modalContent = document.getElementById('modalContent');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const closeBtn = document.getElementById('closeModal');
+    const emptyState = document.getElementById('emptyState');
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const mobileNav = document.getElementById('mobileNav');
+    const gemIcon = `<img src="gem.png" class="w-4 h-4 inline-block" alt="Value">`;
+
+    // Render Logic
+    function render() {
+      let dataSource = activeCategory === 'snipers' ? snipers : knives;
+      
+      if (activeCategory === 'knives') {
+        filtersContainer.classList.add('hidden');
+      } else {
+        filtersContainer.classList.remove('hidden');
+      }
+
+      let filtered = dataSource.filter(item => {
+        const matchesFilter = activeCategory === 'knives' || activeFilter === 'all' || item.rarity === activeFilter;
+        const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.case.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesFilter && matchesSearch;
+      });
+
+      filtered.sort((a, b) => {
+        switch(currentSort) {
+          case 'rarity-desc': return rarityOrder[b.rarity] - rarityOrder[a.rarity];
+          case 'rarity-asc': return rarityOrder[a.rarity] - rarityOrder[b.rarity];
+          case 'price-desc': return b.val - a.val;
+          case 'price-asc': return a.val - b.val;
+          default: return 0;
+        }
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      
+      grid.innerHTML = filtered.map((item, index) => `
+        <div class="item-card fade-in" 
+             style="animation-delay: ${index * 15}ms" 
+             data-rarity="${item.rarity}" 
+             onclick="openModal(${item.id})">
+          <div class="item-image-container">
+             <img alt="${item.name}" class="w-full h-full object-contain relative z-10" loading="lazy" src="${item.img}">
+          </div>
+          <div class="p-4">
+            <div class="flex items-center justify-between mb-1.5">
+                <span class="rarity-text text-${item.rarity}">${item.rarity}</span>
+            </div>
+            <h3 class="font-semibold text-[var(--fg)] text-sm truncate">${item.name}</h3>
+            <p class="text-xs text-[var(--muted)] mb-3 truncate">${item.case}</p>
+            
+            <div class="flex items-center gap-1.5">
+                ${gemIcon}
+                <span class="text-lg font-bold tracking-tight">${item.rawVal || item.val.toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Modal Logic
+    function openModal(id) {
+      let item = (activeCategory === 'snipers' ? snipers : knives).find(i => i.id === id);
+      if (!item) return;
+
+      const wears = getWearPrices(item);
+
+      const wearHtml = wears.map(w => `
+        <div class="flex justify-between items-center bg-[var(--bg)] p-3 rounded-lg border border-[var(--border)]">
+            <span class="wear-badge wear-${w.class}">${w.label}</span>
+            <div class="flex items-center gap-1.5">
+                ${gemIcon}
+                <span class="font-bold">${w.val.toLocaleString()}</span>
+            </div>
+        </div>
+      `).join('');
+
+      modalBody.innerHTML = `
+        <div class="text-center mb-6">
+            <div class="w-24 h-24 mx-auto rounded-2xl bg-[var(--bg-elevated)] border border-[var(--border)] p-2 flex items-center justify-center overflow-hidden">
+                <img alt="${item.name}" class="w-full h-full object-contain" src="${item.img}">
+            </div>
+        </div>
+        <div class="text-center mb-6">
+            <p class="text-xs font-bold uppercase tracking-widest mb-1 rarity-text text-${item.rarity}">${item.rarity}</p>
+            <h2 class="text-xl font-bold">${item.name}</h2>
+            <p class="text-sm text-[var(--muted)] mt-1">${item.case}</p>
+        </div>
+        
+        <div class="mb-4">
+            <p class="text-xs text-[var(--muted)] mb-2 uppercase tracking-wide">Wear Conditions</p>
+            <div class="flex flex-col gap-2">
+                ${wearHtml}
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 mt-4">
+            <div class="bg-[var(--bg-elevated)] rounded-lg p-3 border border-[var(--border)]">
+                <p class="text-[var(--muted)] text-xs mb-1">Category</p>
+                <p class="font-semibold text-sm">${item.cat}</p>
+            </div>
+            <div class="bg-[var(--bg-elevated)] rounded-lg p-3 border border-[var(--border)]">
+                <p class="text-[var(--muted)] text-xs mb-1">Origin</p>
+                <p class="font-semibold text-sm">${item.case}</p>
+            </div>
+        </div>
+      `;
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      requestAnimationFrame(() => {
+        modalContent.classList.remove('scale-95', 'opacity-0');
+      });
+    }
+
+    function closeModal() {
+      modalContent.classList.add('scale-95', 'opacity-0');
+      setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }, 200);
+    }
+
+    function switchCategory(cat) {
+      activeCategory = cat;
+      activeFilter = 'all';
+      searchQuery = '';
+      searchInput.value = '';
+      
+      document.querySelectorAll('.nav-pill').forEach(p => p.classList.remove('active'));
+      if (cat === 'snipers') {
+        document.getElementById('nav-snipers').classList.add('active');
+        document.getElementById('mobile-nav-snipers').classList.add('active');
+      } else {
+        document.getElementById('nav-knives').classList.add('active');
+        document.getElementById('mobile-nav-knives').classList.add('active');
+      }
+      
+      filterBtns.forEach(b => b.classList.remove('active'));
+      filterBtns[0].classList.add('active');
+
+      render();
+    }
+
+    // Event Listeners
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      render();
+    });
+
+    sortSelect.addEventListener('change', (e) => {
+      currentSort = e.target.value;
+      render();
+    });
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeFilter = btn.dataset.filter;
+        render();
+      });
+    });
+
+    modalOverlay.addEventListener('click', closeModal);
+    closeBtn.addEventListener('click', closeModal);
+    
+    mobileMenuBtn.addEventListener('click', () => {
+        mobileNav.classList.toggle('hidden');
+    });
+
+    document.getElementById('nav-snipers').addEventListener('click', () => switchCategory('snipers'));
+    document.getElementById('nav-knives').addEventListener('click', () => switchCategory('knives'));
+    document.getElementById('mobile-nav-snipers').addEventListener('click', () => { switchCategory('snipers'); mobileNav.classList.add('hidden'); });
+    document.getElementById('mobile-nav-knives').addEventListener('click', () => { switchCategory('knives'); mobileNav.classList.add('hidden'); });
+
+    // Init
+    render();
+  </script>
+</body>
+</html>
